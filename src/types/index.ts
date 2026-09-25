@@ -1,22 +1,37 @@
 export type Role = 'ADMIN' | 'WALI_KELAS' | 'GURU_MAPEL';
 
 export interface AuthUser {
-  sub: string;
+  guruId: string;
+  username: string;
   name: string;
-  email?: string;
-  picture?: string;
   role: Role;
-  unit?: string;
-  kelas?: string;
-  mapel?: string[];
-  sessionToken: string;
+  status: string;
+}
+
+export interface Assignment {
+  unit: string;
+  kelas: string;
+  mapel: string;
+  isWaliKelas: boolean;
+}
+
+export interface Permissions {
+  inputNilai: boolean;
+  monitoring: boolean;
+  raportAsli: boolean;
+  manageGuru: boolean;
 }
 
 export interface BootstrapData {
   user: AuthUser;
-  units: string[];
-  kelas: string[];
-  mapel: string[];
+  assignments: Assignment[];
+  permissions: Permissions;
+}
+
+export interface LoginData {
+  sessionToken: string;
+  user: AuthUser;
+  assignments: Assignment[];
 }
 
 export interface ApiResponse<T = unknown> {
