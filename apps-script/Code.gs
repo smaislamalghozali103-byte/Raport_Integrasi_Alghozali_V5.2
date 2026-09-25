@@ -191,10 +191,10 @@ function raportView_(b) {
     kelas,
     spreadsheetName:ss.getName(),
     activeSheet:activeName,
-    sheets:[{
-      name:activeName,
-      rows:values
-    }]
+    sheets:sheets.map(item=>({
+      name:item.name,
+      rows:item.name===activeName ? values : []
+    }))
   });
 }
 
