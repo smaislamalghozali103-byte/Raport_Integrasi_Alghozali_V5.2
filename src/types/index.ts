@@ -44,8 +44,7 @@ export interface ApiResponse<T = unknown> {
 
 export interface RaportSheetView {
   name: string;
-  headers: string[];
-  rows: unknown[][];
+  rows: string[][];
 }
 
 export interface RaportViewData {
