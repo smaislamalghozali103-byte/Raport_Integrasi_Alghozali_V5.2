@@ -1,4 +1,4 @@
-import type { ApiResponse, BootstrapData, LoginData } from '../types';
+import type { ApiResponse, BootstrapData, LoginData, RaportViewData } from '../types';
 
 const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL?.trim() ?? '';
 
@@ -38,4 +38,6 @@ export const api = {
     request<{ changed: boolean; message?: string }>('changePassword', { sessionToken, currentPassword, newPassword }),
   raportAccess: (sessionToken: string, kelas: string) =>
     request<{ kelas: string; url: string }>('raportAccess', { sessionToken, kelas }),
+  raportView: (sessionToken: string, kelas: string, sheetName?: string) =>
+    request<RaportViewData>('raportView', { sessionToken, kelas, ...(sheetName ? { sheetName } : {}) }),
 };
