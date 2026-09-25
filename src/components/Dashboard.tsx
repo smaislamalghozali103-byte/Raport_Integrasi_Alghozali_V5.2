@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import type { Assignment, AuthUser } from '../types';
+import RaportViewer from './RaportViewer';
 
 interface Props {
   user: AuthUser;
@@ -15,7 +16,6 @@ export default function Dashboard({ user, onLogout }: Props) {
   const [reportClass, setReportClass] = useState('');
   const [tab, setTab] = useState<Tab>('beranda');
   const [loading, setLoading] = useState(true);
-  const [opening, setOpening] = useState(false);
   const [error, setError] = useState('');
 
   const token = sessionStorage.getItem('ag_session') ?? '';
@@ -38,19 +38,6 @@ export default function Dashboard({ user, onLogout }: Props) {
   );
 
   const visibleReportClasses = user.role === 'WALI_KELAS' ? waliClasses : classes;
-
-  async function openReport() {
-    setError('');
-    if (!reportClass) return setError('Pilih kelas terlebih dahulu.');
-    setOpening(true);
-    const result = await api.raportAccess(token, reportClass);
-    setOpening(false);
-    if (result.success && result.data) {
-      window.open(result.data.url, '_blank', 'noopener,noreferrer');
-    } else {
-      setError(result.message ?? 'Akses RAPORT ASLI ditolak oleh server.');
-    }
-  }
 
   return (
     <main className="app-shell">
@@ -126,15 +113,15 @@ export default function Dashboard({ user, onLogout }: Props) {
             <section>
               <div className="section-title"><div><p className="eyebrow">DOKUMEN RESMI</p><h1>RAPORT ASLI</h1></div></div>
               <div className="report-panel">
-                <p>Dokumen dibuka langsung dari Google Spreadsheet RAPORT ASLI. Sistem tidak membuat salinan atau mengubah dokumen raport.</p>
+                <p>RAPORT ASLI ditampilkan langsung di dalam aplikasi dari Spreadsheet resmi. Sistem hanya membaca data dan tidak mengubah dokumen raport.</p>
                 <label>Kelas
                   <select value={reportClass} onChange={e => setReportClass(e.target.value)}>
                     <option value="">Pilih kelas</option>
                     {visibleReportClasses.map(k => <option key={k} value={k}>{k}</option>)}
                   </select>
                 </label>
-                <button className="primary" onClick={openReport} disabled={!reportClass || opening}>{opening ? 'Memeriksa akses...' : 'Buka RAPORT ASLI'}</button>
               </div>
+              {reportClass && <RaportViewer token={token} kelas={reportClass} />}
               {visibleReportClasses.length === 0 && <div className="empty"><strong>Belum ada kelas yang dapat ditampilkan</strong><span>Daftar kelas berasal dari server, bukan data contoh.</span></div>}
             </section>
           )}
