@@ -39,9 +39,9 @@ Satu guru boleh memiliki jumlah baris penugasan berapa pun.
 
 Contoh:
 
-| GURU_ID | UNIT | KELAS | MAPEL | STATUS |
+| GURU_ID | UNIT | KELAS | MAPEL | IS_WALI_KELAS | STATUS |
 |---|---|---|---|---|
-| G001 | SMP | 3A | IPS | AKTIF |
+| G001 | SMP | 3A | IPS | FALSE | AKTIF |
 | G001 | SMP | 3B | IPS | AKTIF |
 | G001 | SMA | 5A | Sosiologi | AKTIF |
 | G001 | SMA | 5B | Sejarah | AKTIF |
