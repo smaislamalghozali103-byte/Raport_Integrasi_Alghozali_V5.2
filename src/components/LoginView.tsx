@@ -1,61 +1,39 @@
-import { useEffect, useRef, useState } from 'react';
-import { GOOGLE_CLIENT_ID } from '../config';
+import { FormEvent, useState } from 'react';
 import { api } from '../services/api';
 import type { AuthUser } from '../types';
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (options: { client_id: string; callback: (response: { credential: string }) => void }) => void;
-          renderButton: (element: HTMLElement, options: Record<string, unknown>) => void;
-          cancel: () => void;
-        };
-      };
-    };
-  }
+interface Props {
+  onLogin: (user: AuthUser) => void;
 }
 
-interface Props { onLogin: (user: AuthUser) => void; }
-
 export default function LoginView({ onLogin }: Props) {
-  const buttonRef = useRef<HTMLDivElement>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
-    const render = () => {
-      if (!window.google || !buttonRef.current) return;
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async ({ credential }) => {
-          setError('');
-          const result = await api.loginGoogle(credential);
-          if (result.success && result.data) {
-            sessionStorage.setItem('ag_session', result.data.sessionToken);
-            onLogin(result.data.bootstrap.user);
-          } else {
-            setError(result.message ?? 'Login Google ditolak oleh server.');
-          }
-        },
-      });
-      buttonRef.current.innerHTML = '';
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: 320,
-      });
-    };
-    if (window.google) render();
-    else {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = render;
-      document.head.appendChild(script);
-      return () => script.remove();
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+
+    if (!username.trim() || !password) {
+      setError('Username dan password wajib diisi.');
+      return;
     }
-  }, [onLogin]);
+
+    setLoading(true);
+    const result = await api.login(username, password);
+    setLoading(false);
+
+    if (result.success && result.data) {
+      sessionStorage.setItem('ag_session', result.data.sessionToken);
+      onLogin(result.data.user);
+      return;
+    }
+
+    setError(result.message ?? 'Login ditolak oleh server.');
+  }
 
   return (
     <main className="login-page">
@@ -63,9 +41,53 @@ export default function LoginView({ onLogin }: Props) {
         <div className="brand-mark">AG</div>
         <p className="eyebrow">PONDOK MODERN AL-GHOZALI</p>
         <h1>Raport Integrasi</h1>
-        <p className="muted">Masuk menggunakan akun Google yang terdaftar pada MASTER GURU.</p>
-        {!GOOGLE_CLIENT_ID ? <div className="notice">Google Client ID belum dikonfigurasi.</div> : <div ref={buttonRef} className="google-button" />}
-        {error && <div className="error">{error}</div>}
+        <p className="muted">Masuk menggunakan username dan password yang diberikan Admin.</p>
+
+        <form onSubmit={submit}>
+          <label>
+            Username
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              autoFocus
+              disabled={loading}
+              placeholder="Username"
+            />
+          </label>
+
+          <label>
+            Password
+            <div className="password-row">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                disabled={loading}
+                placeholder="Password"
+              />
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setShowPassword(v => !v)}
+                disabled={loading}
+              >
+                {showPassword ? 'Sembunyikan' : 'Lihat'}
+              </button>
+            </div>
+          </label>
+
+          {error && <div className="error" role="alert">{error}</div>}
+
+          <button className="primary" type="submit" disabled={loading}>
+            {loading ? 'Memeriksa...' : 'Masuk'}
+          </button>
+        </form>
+
+        <p className="login-help">
+          Belum memiliki akun? Hubungi Admin untuk mendapatkan username dan password.
+        </p>
       </section>
     </main>
   );
