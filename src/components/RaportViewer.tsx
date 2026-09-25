@@ -72,15 +72,10 @@ export default function RaportViewer({ token, kelas }: Props) {
           ) : (
             <div className="table-wrap raport-grid">
               <table>
-                <thead>
-                  <tr>
-                    {active.headers.map((h, i) => <th key={i}>{h || ('Kolom ' + (i + 1))}</th>)}
-                  </tr>
-                </thead>
                 <tbody>
                   {active.rows.map((row, r) => (
                     <tr key={r}>
-                      {active.headers.map((_, c) => <td key={c}>{row[c] == null || row[c] === '' ? '—' : String(row[c])}</td>)}
+                      {row.map((cell, c) => <td key={c}>{cell === '' ? '—' : cell}</td>)}
                     </tr>
                   ))}
                 </tbody>
@@ -88,7 +83,7 @@ export default function RaportViewer({ token, kelas }: Props) {
             </div>
           )}
           <div className="raport-viewer-foot">
-            <span>{active?.rows.length ?? 0} baris · {active?.headers.length ?? 0} kolom</span>
+            <span>{active?.rows.length ?? 0} baris · {active?.rows[0]?.length ?? 0} kolom</span>
             <span>Mode baca · RAPORT ASLI tidak diubah</span>
           </div>
         </>
