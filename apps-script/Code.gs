@@ -38,6 +38,7 @@ function doPost(e) {
       case 'bootstrap': return json_(bootstrap_(b));
       case 'changePassword': return json_(changePassword_(b));
       case 'raportAccess': return json_(raportAccess_(b));
+      case 'raportView': return json_(raportView_(b));
       case 'getAssignments': return json_(getAssignmentsApi_(b));
       case 'getClasses': return json_(getClassesApi_(b));
       case 'saveNilai': return json_(saveNilai_(b));
@@ -147,6 +148,54 @@ function raportAccess_(b) {
   if(!id) return fail_('RAPORT_NOT_CONFIGURED','Spreadsheet RAPORT kelas belum dikonfigurasi.');
   logActivity_(g.id,g.username,'RAPORT_ACCESS','SUCCESS','Akses RAPORT ASLI diberikan.');
   return ok_({kelas:kelas,url:'https://docs.google.com/spreadsheets/d/'+id+'/edit'});
+}
+
+/* ===== RAPORT VIEW ===== */
+
+function raportView_(b) {
+  const s=requireSession_(b.sessionToken), g=findAccountById_(s.id), kelas=normalizeClass_(b.kelas);
+  if(!g) return fail_('USER_NOT_FOUND','Akun tidak ditemukan.');
+  if(!kelas) return fail_('INVALID_CLASS','Kelas wajib dipilih.');
+
+  if(g.role===APP.ROLE.MAPEL) {
+    logActivity_(g.id,g.username,'RAPORT_VIEW','FORBIDDEN','Guru mapel mencoba membuka RAPORT ASLI.');
+    return fail_('FORBIDDEN','Guru mapel tidak memiliki akses RAPORT ASLI.');
+  }
+  if(g.role===APP.ROLE.WALI && !isWaliForClass_(g.nama,kelas)) {
+    logActivity_(g.id,g.username,'RAPORT_VIEW','FORBIDDEN','Kelas bukan kewenangan wali.');
+    return fail_('FORBIDDEN','Anda hanya dapat membuka RAPORT ASLI kelas yang menjadi tanggung jawab Anda.');
+  }
+
+  const id=getRaportId_(kelas);
+  if(!id) return fail_('RAPORT_NOT_CONFIGURED','Spreadsheet RAPORT kelas belum dikonfigurasi.');
+
+  const ss=SpreadsheetApp.openById(id);
+  const requested=String(b.sheetName||'').trim();
+  const sheets=ss.getSheets().map(sh=>({
+    name:sh.getName(),
+    rows:Math.max(0,sh.getLastRow()),
+    columns:Math.max(0,sh.getLastColumn())
+  }));
+
+  if(!sheets.length) return ok_({kelas,spreadsheetName:ss.getName(),activeSheet:'',sheets:[]});
+
+  const activeName=requested && sheets.some(x=>x.name===requested) ? requested : sheets[0].name;
+  const active=ss.getSheetByName(activeName);
+  if(!active) return fail_('SHEET_NOT_FOUND','Sheet RAPORT tidak ditemukan.');
+
+  const lastRow=active.getLastRow(), lastCol=active.getLastColumn();
+  const values=lastRow && lastCol ? active.getRange(1,1,lastRow,lastCol).getDisplayValues() : [];
+  logActivity_(g.id,g.username,'RAPORT_VIEW','SUCCESS','Membaca RAPORT ASLI kelas '+kelas+' sheet '+activeName+'.');
+
+  return ok_({
+    kelas,
+    spreadsheetName:ss.getName(),
+    activeSheet:activeName,
+    sheets:[{
+      name:activeName,
+      rows:values
+    }]
+  });
 }
 
 /* ===== ASSIGNMENT ===== */
