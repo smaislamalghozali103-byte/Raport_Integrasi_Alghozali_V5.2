@@ -160,18 +160,36 @@ function getAssignmentsApi_(b) {
 function getClassesApi_(b) {
   const s=requireSession_(b.sessionToken), g=findAccountById_(s.id);
   if(!g) return fail_('USER_NOT_FOUND','Akun tidak ditemukan.');
+  if(g.role===APP.ROLE.ADMIN) {
+    const props=PropertiesService.getScriptProperties().getProperties();
+    const classes=Object.keys(props)
+      .filter(k=>/^RAPORT_KELAS_.+_ID$/.test(k)&&props[k])
+      .map(k=>k.replace(/^RAPORT_KELAS_/,'').replace(/_ID$/,''))
+      .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    return ok_(classes);
+  }
   const a=getAssignmentsForGuru_(g.nama);
-  return ok_([...new Set(a.map(x=>x.kelas))]);
+  return ok_([...new Set(a.map(x=>x.kelas).filter(Boolean))]);
 }
 
 function getAssignmentsForGuru_(nama) {
   const sh=findSheetByHeaders_(getByProperty_('GURU_SMP_SMA_SPREADSHEET_ID'),
     ['NAMA GURU','UNIT','MATA PELAJARAN','KELAS']);
-  const v=sh.getDataRange().getValues(), h=headerMap_(v[0]), target=normalizeName_(nama);
-  return v.slice(1).filter(r=>normalizeName_(r[h['NAMA GURU']])===target)
+  const startRow=Number(sh.__headerRow||1);
+  const v=sh.getDataRange().getValues(), h=sh.__headerMap||headerMap_(v[startRow-1]), target=normalizeName_(nama);
+  const waliClasses=new Set();
+  try {
+    const ws=findSheetByHeaders_(getByProperty_('WALI_KELAS_SPREADSHEET_ID'),['KELAS','NAMA WALI KELAS']);
+    const wv=ws.getDataRange().getValues(), wh=ws.__headerMap||headerMap_(wv[(ws.__headerRow||1)-1]), wn=normalizeName_(nama);
+    for(let i=(ws.__headerRow||1);i<wv.length;i++){
+      if(normalizeName_(wv[i][wh['NAMA WALI KELAS']])===wn) waliClasses.add(normalizeClass_(wv[i][wh.KELAS]));
+    }
+  } catch(e) {}
+  return v.slice(startRow).filter(r=>normalizeName_(r[h['NAMA GURU']])===target)
     .map(r=>({namaGuru:String(r[h['NAMA GURU']]).trim(),unit:String(r[h.UNIT]||'').trim(),
       mapel:String(r[h['MATA PELAJARAN']]||'').trim(),kelas:String(r[h.KELAS]||'').trim(),
-      jumlahJam:h['JUMLAH JAM']!==undefined?r[h['JUMLAH JAM']]:''}));
+      jumlahJam:h['JUMLAH JAM']!==undefined?r[h['JUMLAH JAM']]: '',
+      isWaliKelas:waliClasses.has(normalizeClass_(r[h.KELAS]))}));
 }
 
 /* ===== INPUT NILAI ===== */
@@ -231,8 +249,8 @@ function monitoring_(b) {
 
 function isWaliForClass_(nama,kelas) {
   const sh=findSheetByHeaders_(getByProperty_('WALI_KELAS_SPREADSHEET_ID'),['KELAS','NAMA WALI KELAS']);
-  const v=sh.getDataRange().getValues(), h=headerMap_(v[0]), n=normalizeName_(nama), k=normalizeClass_(kelas);
-  return v.slice(1).some(r=>normalizeName_(r[h['NAMA WALI KELAS']])===n&&normalizeClass_(r[h.KELAS])===k);
+  const v=sh.getDataRange().getValues(), startRow=Number(sh.__headerRow||1), h=sh.__headerMap||headerMap_(v[startRow-1]), n=normalizeName_(nama), k=normalizeClass_(kelas);
+  return v.slice(startRow).some(r=>normalizeName_(r[h['NAMA WALI KELAS']])===n&&normalizeClass_(r[h.KELAS])===k);
 }
 
 /* ===== DATA / SHEET HELPERS ===== */
@@ -248,9 +266,10 @@ function findAccountById_(id) {
   return accountFromSheet_(sh,id,'ID_GURU');
 }
 function accountFromSheet_(sh,key,field) {
-  const v=sh.getDataRange().getValues(); if(v.length<2) return null;
-  const h=headerMap_(v[0]), want=field==='USERNAME'?normalizeUsername_(key):normalizeText_(key);
-  for(let i=1;i<v.length;i++){
+  const v=sh.getDataRange().getValues(), startRow=Number(sh.__headerRow||1);
+  if(v.length<startRow+0) return null;
+  const h=sh.__headerMap||headerMap_(v[startRow-1]), want=field==='USERNAME'?normalizeUsername_(key):normalizeText_(key);
+  for(let i=startRow;i<v.length;i++){
     const got=field==='USERNAME'?normalizeUsername_(v[i][h[field]]):normalizeText_(v[i][h[field]]);
     if(got===want) return {id:normalizeText_(v[i][h.ID_GURU]),nama:String(v[i][h.NAMA_GURU]||'').trim(),
       username:normalizeUsername_(v[i][h.USERNAME]),passwordHash:String(v[i][h.PASSWORD_HASH]||'').trim().toLowerCase(),
