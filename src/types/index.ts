@@ -40,3 +40,17 @@ export interface ApiResponse<T = unknown> {
   error?: string;
   message?: string;
 }
+
+
+export interface RaportSheetView {
+  name: string;
+  headers: string[];
+  rows: unknown[][];
+}
+
+export interface RaportViewData {
+  kelas: string;
+  spreadsheetName: string;
+  activeSheet: string;
+  sheets: RaportSheetView[];
+}
