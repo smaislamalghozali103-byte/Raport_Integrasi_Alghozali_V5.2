@@ -97,6 +97,7 @@ function setupMasterSheets() {
     'UNIT',
     'KELAS',
     'MAPEL',
+    'IS_WALI_KELAS',
     'STATUS'
   ]);
 
@@ -362,7 +363,7 @@ function getAssignmentsForGuru_(guruId) {
   if (values.length < 2) return [];
 
   const headers = headerMap_(values[0]);
-  ['GURU_ID', 'UNIT', 'KELAS', 'MAPEL', 'STATUS'].forEach(function(h) {
+  ['GURU_ID', 'UNIT', 'KELAS', 'MAPEL', 'IS_WALI_KELAS', 'STATUS'].forEach(function(h) {
     if (headers[h] === undefined) throw new Error('Kolom ' + h + ' tidak ditemukan di MASTER_PENUGASAN.');
   });
 
@@ -376,7 +377,7 @@ function getAssignmentsForGuru_(guruId) {
         unit: normalizeText_(row[headers.UNIT]),
         kelas: normalizeText_(row[headers.KELAS]),
         mapel: normalizeText_(row[headers.MAPEL]),
-        isWaliKelas: normalizeText_(row[headers.MAPEL]) === 'WALI_KELAS'
+        isWaliKelas: isTrue_(row[headers.IS_WALI_KELAS])
       };
     });
 }
@@ -488,7 +489,7 @@ function normalizeText_(value) {
   return String(value == null ? '' : value).trim().replace(/\\s+/g, ' ').toUpperCase();
 }
 
-function normalizePropertyKey_(value) {
+function isTrue_(value) {\n  const v = normalizeText_(value);\n  return v === 'TRUE' || v === 'YA' || v === 'YES' || v === '1';\n}\n\nfunction normalizePropertyKey_(value) {
   return normalizeText_(value).replace(/[^A-Z0-9]+/g, '');
 }
 
