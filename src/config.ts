@@ -1,1 +1,1 @@
-export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? '';
+export const APP_NAME = 'Raport Integrasi Al-Ghozali V5.2';
