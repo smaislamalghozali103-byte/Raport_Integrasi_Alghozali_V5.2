@@ -1,12 +1,12 @@
-function App() {
-  return (
-    <main className="app-shell">
-      <section className="card">
-        <p className="eyebrow">Pondok Modern Al-Ghozali</p>
-        <h1>Raport Integrasi Al-Ghozali</h1>
-        <p className="muted">Fondasi V5.2 yang bersih untuk GitHub Pages. Google Login dan Google Apps Script akan ditambahkan pada tahap berikutnya.</p>
-      </section>
-    </main>
-  );
+import { useState } from 'react';
+import LoginView from './components/LoginView';
+import Dashboard from './components/Dashboard';
+import type { AuthUser } from './types';
+
+export default function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  if (!user) return <LoginView onLogin={setUser} />;
+  const logout = () => { sessionStorage.removeItem('ag_session'); setUser(null); };
+  const openReport = () => window.dispatchEvent(new CustomEvent('ag-report-request'));
+  return <Dashboard user={user} onLogout={logout} onReport={openReport} />;
 }
-export default App;
