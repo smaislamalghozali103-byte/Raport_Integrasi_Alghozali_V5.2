@@ -93,15 +93,53 @@ function login_(b) {
   if(!username||!password) return fail_('INVALID_LOGIN','Username dan password wajib diisi.');
   if(blocked_(username)) return fail_('TOO_MANY_ATTEMPTS','Terlalu banyak percobaan. Coba lagi beberapa menit.');
 
-  const g=findAccountByUsername_(username);
+  // Kompatibilitas akun ADMIN lama:
+  // jika username di spreadsheet masih tertulis "hash" pada ADMIN001,
+  // pengguna tetap dapat masuk dengan username resmi "admin".
+  let g=findAccountByUsername_(username);
+  if(!g && username==='admin') g=findAccountById_('ADMIN001');
+
   if(!g || g.status!=='AKTIF' || g.passwordHash!==sha256_(password)) {
     failLogin_(username); logActivity_(null,username,'LOGIN','FAILED','Username/password tidak valid.');
     return fail_('INVALID_LOGIN','Username atau password salah.');
   }
+
   clearFails_(username);
   const token=createSession_(g);
-  logActivity_(g.id,g.username,'LOGIN','SUCCESS','Login berhasil.');
+  logActivity_(g.id,username,'LOGIN','SUCCESS','Login berhasil.');
   return ok_({sessionToken:token,user:publicUser_(g),assignments:getAssignmentsForGuru_(g.nama)});
+}
+
+function repairAdminAccount() {
+  const sh=findSheetByHeaders_(getByProperty_('ID_SPREADSHEET_USERNAME_ID'),
+    ['ID_GURU','NAMA_GURU','USERNAME','PASSWORD_HASH','ROLE','STATUS']);
+  const v=sh.getDataRange().getValues(), startRow=Number(sh.__headerRow||1);
+  const h=sh.__headerMap||headerMap_(v[startRow-1]);
+
+  let row=-1;
+  for(let i=startRow;i<v.length;i++) {
+    if(normalizeText_(v[i][h.ID_GURU])==='ADMIN001') {
+      row=i+1;
+      break;
+    }
+  }
+  if(row<0) throw new Error('Akun ADMIN001 tidak ditemukan.');
+
+  // Pastikan tidak ada akun lain memakai username admin.
+  for(let i=startRow;i<v.length;i++) {
+    if(i+1!==row && normalizeUsername_(v[i][h.USERNAME])==='admin') {
+      throw new Error('Username admin sudah dipakai akun lain.');
+    }
+  }
+
+  sh.getRange(row,h.USERNAME+1).setValue('admin');
+  sh.getRange(row,h.ROLE+1).setValue('ADMIN');
+  sh.getRange(row,h.STATUS+1).setValue('AKTIF');
+
+  return {
+    success:true,
+    message:'Akun ADMIN001 diperbaiki. Username resmi: admin. Password/hash dipertahankan.'
+  };
 }
 
 function logout_(b) {
