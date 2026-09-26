@@ -365,20 +365,54 @@ function accountFromSheet_(sh,key,field) {
   return null;
 }
 
-function findSheetByHeaders_(id,required) {
-  if(!id) throw new Error('Spreadsheet ID belum dikonfigurasi.');
-  const ss=SpreadsheetApp.openById(id);
-  const sheets=ss.getSheets();
-  for(const sh of sheets){
-    const max=Math.min(12,Math.max(1,sh.getLastRow()));
-    if(!max) continue;
-    const rows=sh.getRange(1,1,max,Math.max(1,sh.getLastColumn())).getValues();
-    for(let r=0;r<rows.length;r++){
-      const h=headerMap_(rows[r]);
-      if(required.every(x=>h[x]!==undefined)) return shWithHeaderRow_(sh,r+1,h);
+function findSheetByHeaders_(id, required) {
+  if (!id) {
+    throw new Error('Spreadsheet ID belum dikonfigurasi.');
+  }
+
+  const ss = SpreadsheetApp.openById(id);
+  const sheets = ss.getSheets();
+
+  // headerMap_() menormalisasi underscore/hyphen/spasi.
+  // Contoh: ID_GURU -> ID GURU.
+  // Header yang diminta juga harus dinormalisasi.
+  const normalizedRequired = required.map(function (x) {
+    return normalizeHeader_(x);
+  });
+
+  for (const sh of sheets) {
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+
+    if (!lastRow || !lastCol) continue;
+
+    const maxRows = Math.min(12, lastRow);
+
+    const rows = sh
+      .getRange(1, 1, maxRows, lastCol)
+      .getValues();
+
+    for (let r = 0; r < rows.length; r++) {
+      const h = headerMap_(rows[r]);
+
+      if (
+        normalizedRequired.every(function (x) {
+          return h[x] !== undefined;
+        })
+      ) {
+        return shWithHeaderRow_(
+          sh,
+          r + 1,
+          h
+        );
+      }
     }
   }
-  throw new Error('Sheet dengan kolom wajib tidak ditemukan: '+required.join(', '));
+
+  throw new Error(
+    'Sheet dengan kolom wajib tidak ditemukan: ' +
+    required.join(', ')
+  );
 }
 
 function shWithHeaderRow_(sh,row,h){ sh.__headerRow=row; sh.__headerMap=h; return sh; }
