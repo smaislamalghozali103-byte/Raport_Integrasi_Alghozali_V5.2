@@ -367,7 +367,7 @@ function findSubjectColumn_(headers,mapel) {
 function headerMap_(row) {
   const m={}; row.forEach((x,i)=>{const k=normalizeHeader_(x);if(k)m[k]=i;}); return m;
 }
-function normalizeHeader_(x){return String(x==null?'':x).trim().replace(/\s+/g,' ').toUpperCase();}
+function normalizeHeader_(x){return String(x==null?'':x).trim().toUpperCase().replace(/[\s_-]+/g,' ');}
 function normalizeText_(x){return normalizeHeader_(x);}
 function normalizeUsername_(x){return String(x==null?'':x).trim().toLowerCase();}
 function normalizeName_(x){return normalizeText_(x).replace(/[^A-Z0-9]+/g,'');}
